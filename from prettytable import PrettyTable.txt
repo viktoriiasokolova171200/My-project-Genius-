@@ -1,0 +1,127 @@
+from prettytable import PrettyTable
+
+
+def is_valid(value: int) -> bool:
+    return value in (0, 1)
+
+
+def and_(first: int, second: int) -> int:
+    if not isinstance(first, int):
+        first = int(first)
+    if not isinstance(second, int):
+        second = int(second)
+    if not is_valid(first) or not is_valid(second):
+        raise ValueError(f'Incorrect input: first value is "{first}", '
+                         f'second value is "{second}"')
+    return first & second
+
+
+def or_(first: int, second: int) -> int:
+    if not isinstance(first, int):
+        first = int(first)
+    if not isinstance(second, int):
+        second = int(second)
+    if not is_valid(first) or not is_valid(second):
+        raise ValueError(f'Incorrect input: first value is "{first}", '
+                         f'second value is "{second}"')
+    return first | second
+
+
+def not_and(first: int, second: int) -> int:
+    return int(not and_(first, second))
+
+
+OP_MAPPING = {
+    '1': and_,
+    '2': or_,
+    '3': not_and,
+    '7': and_,
+    '8': or_,
+    '9': or_,
+    'A': and_,
+    'B': not_and,
+    'C': not_and,
+}
+
+
+REPAIR_MAPPING = {
+    '7': '1',
+    '8': '2',
+    '9': '2',
+    'A': '1',
+    'B': '3',
+    'C': '3',
+}
+
+
+def get_pretty_table(in1: int, in2: int, in3: int, in4: int, in5: int,
+                     in6: int, out7: int, out8: int, out9: int, out_a: int,
+                     out_b: int, out_c: int) -> str:
+    table = PrettyTable()
+    table.add_column('L', ['M', 'X', 'P', 'Q'])
+    table.add_column('1', [in1, '.', '.', '0\n0\n0\n1'])
+    table.add_column('2', [in2, '.', '.', '0\n1\n1\n1'])
+    table.add_column('3', [in3, '.', '.', '1\n1\n1\n0'])
+    table.add_column('4', [in4, '.', '.', '0\n0\n0\n1'])
+    table.add_column('5', [in5, '.', '.', '0\n1\n1\n1'])
+    table.add_column('6', [in6, '.', '.', '1\n1\n1\n0'])
+    table.add_column('7', [out7, '34', '1', '.\n.\n.\n.'])
+    table.add_column('8', [out8, 'A7', '2', '.\n.\n.\n.'])
+    table.add_column('9', [out9, '75', '2', '.\n.\n.\n.'])
+    table.add_column('A', [out_a, '12', '1', '.\n.\n.\n.'])
+    table.add_column('B', [out_b, '86', '3', '.\n.\n.\n.'])
+    table.add_column('C', [out_c, '96', '3', '.\n.\n.\n.'])
+    return table.get_string()
+
+
+def calculate_outs(inputs: list, failed_element: str = None):
+    calculated_outs = ('7', 'A', '8', '9', 'B', 'C')
+    if len(inputs) != 6:
+        raise ValueError('Incorrect vector, should be on length 6')
+    if failed_element:
+        if failed_element.upper() not in calculated_outs:
+            raise ValueError('Incorrect setting for failed element')
+
+    result = {}
+    for out in calculated_outs:
+        repair_element = None
+        if failed_element and failed_element == out:
+            print(f'Element "{out}" is damaged, re-routing to spare')
+            repair_element = REPAIR_MAPPING[out]
+            print(f'Choosing "{repair_element}" as spare')
+        if not repair_element:
+            operation = OP_MAPPING[out]
+        else:
+            operation = OP_MAPPING[repair_element]
+        if out == 'A':
+            first = inputs[0]
+            second = inputs[1]
+        elif out == '7':
+            first = inputs[2]
+            second = inputs[3]
+        elif out == '8':
+            first = result['7']
+            second = result['A']
+        elif out == '9':
+            first = inputs[4]
+            second = result['7']
+        elif out == 'B':
+            first = inputs[5]
+            second = result['8']
+        else:
+            first = inputs[5]
+            second = result['9']
+        result[out] = operation(first, second)
+
+    return list(result.values())
+
+
+def main():
+    vector = list(input('Please enter 6-digit binary vector: '))
+    failed_element = input('Please enter failed element: ')
+    outs = calculate_outs(vector, failed_element=failed_element)
+    print(get_pretty_table(*vector, *outs))
+
+
+if __name__ == '__main__':
+    main()
